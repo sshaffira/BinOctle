@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinOctle: The Cipher Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ffcc; /* Neon Cyan */
+            --primary-glow: rgba(0, 255, 204, 0.6);
+            --secondary: #b300ff; /* Neon Purple */
+            --bg-dark: #0a0a0f;
+            --panel-bg: rgba(15, 20, 30, 0.85);
+            --text-main: #e2e8f0;
+            --locked-color: #334155;
+            --locked-border: #475569;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            margin: 0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 255, 204, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(179, 0, 255, 0.05) 0%, transparent 40%),
+                linear-gradient(rgba(10, 10, 15, 0.9), rgba(10, 10, 15, 0.9)),
+                url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgwem0yMCAyMGMtNS41IDAtMTAgNC41LTEwIDEwczQuNSAxMCAxMCAxMCAxMC00LjUgMTAtMTAtNC41LTEwLTEwLTEwem0wLTIwQzE0LjUgMCAxMCA0LjUgMTAgMTBzNC41IDEwIDEwIDEwIDEwLTQuNSAxMC0xMFMyNS41IDAgMjAgMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==');
+        }
+
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        .font-display { font-family: 'Orbitron', sans-serif; }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 204, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 255, 204, 0.02);
+            border-radius: 12px;
+        }
+        
+        .btn-neon {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow), inset 0 0 10px var(--primary-glow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        .btn-neon:hover:not(:disabled) {
+            background: var(--primary);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--primary-glow), inset 0 0 20px var(--primary-glow);
+            text-shadow: none;
+        }
+        .btn-neon:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            border-color: #666;
+            color: #666;
+        }
+
+        .puzzle-board {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(0, 255, 204, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        /* MS Word SVG Logo as the hidden image */
+        .puzzle-piece {
+            position: absolute;
+            width: 25%;
+            height: 25%;
+            background-color: var(--locked-color);
+            border: 1px solid var(--locked-border);
+            cursor: pointer;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            background-image: none; /* Initially none */
+            background-size: 400% 400%; /* Important for 4x4 grid mapping */
+            z-index: 2;
+        }
+
+        /*
+           We construct the SVG data URI for Animal Art (Elephant) to be used as background.
+        */
+        .puzzle-piece.revealed {
+            background-color: transparent;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="%2314532d"/><circle cx="140" cy="140" r="60" fill="%2394a3b8"/><circle cx="90" cy="120" r="40" fill="%2394a3b8"/><ellipse cx="110" cy="110" rx="30" ry="40" fill="%2364748b"/><path d="M 60 140 Q 40 180 60 210 Q 70 210 65 190 Q 55 160 70 140 Z" fill="%2394a3b8"/><rect x="110" y="180" width="20" height="40" rx="5" fill="%2364748b"/><rect x="160" y="180" width="20" height="40" rx="5" fill="%2364748b"/><rect x="90" y="190" width="20" height="30" rx="5" fill="%2394a3b8"/><rect x="140" y="190" width="20" height="30" rx="5" fill="%2394a3b8"/><circle cx="75" cy="110" r="4" fill="%230f172a"/><path d="M 195 140 Q 210 160 215 180" stroke="%2364748b" stroke-width="4" fill="none"/></svg>');
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: default;
+            z-index: 1;
+            box-shadow: none;
+            color: transparent; /* hide text */
+        }
+        
+        .puzzle-piece.revealed .piece-content { display: none; }
+
+        .puzzle-piece.locked:hover {
+            background-color: #3f51b5;
+            border-color: var(--primary);
+            box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.3);
+            z-index: 10;
+            transform: scale(1.05);
+            color: white;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 204, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 204, 0.6); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px) rotate(-1deg); }
+            40%, 80% { transform: translateX(5px) rotate(1deg); }
+        }
+        .anim-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes unlockFlash {
+            0% { filter: brightness(1) sepia(0); }
+            50% { filter: brightness(2) sepia(1) hue-rotate(90deg); box-shadow: 0 0 30px var(--primary); z-index: 20;}
+            100% { filter: brightness(1) sepia(0); }
+        }
+        .anim-unlock { animation: unlockFlash 0.8s ease-out; }
+        
+        @keyframes finalReveal {
+            0% { filter: brightness(1); box-shadow: 0 0 0 transparent;}
+            50% { filter: brightness(1.5); box-shadow: 0 0 50px rgba(0, 255, 204, 1); transform: scale(1.02); z-index:50;}
+            100% { filter: brightness(1); box-shadow: 0 0 20px rgba(0, 255, 204, 0.5); transform: scale(1); z-index:1;}
+        }
+        .board-reveal { animation: finalReveal 2s ease-out forwards; border-color: var(--primary); }
+
+        /* Utilities */
+        .hidden-ui { display: none !important; opacity: 0; pointer-events: none; }
+        .fade-in { animation: fadeIn 0.5s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,255,204,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,255,204,0.6); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4 text-sm sm:text-base">
+
+    <div id="screen-start" class="glass-panel w-full max-w-3xl p-8 sm:p-12 text-center transition-all duration-500 relative overflow-hidden">
+        <div class="absolute -top-20 -left-20 w-40 h-40 bg-cyan-500/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"></div>
+        
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="mb-4 text-cyan-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    <path d="M12 15v2"></path>
+                </svg>
+            </div>
+            <h1 class="font-display text-5xl sm:text-7xl font-black mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500" style="text-shadow: 0 0 20px rgba(0,255,204,0.2);">
+                BinOctle
+            </h1>
+            <h2 class="font-mono text-xl sm:text-2xl text-cyan-200 tracking-[0.3em] mb-6 border-b border-cyan-500/30 pb-4 inline-block">
+                THE CIPHER ROOM
+            </h2>
+            
+            <p class="text-gray-400 max-w-lg mx-auto mb-8 font-medium leading-relaxed">
+                "Crack the Numbers. Unlock the Puzzle. Escape the Room."<br><br>
+                16 ciphered puzzle pieces are locked inside the room. Solve the number conversion missions to unlock them and reveal the hidden image.
+            </p>
+            
+            <button id="btn-start" class="btn-neon font-display font-bold py-4 px-10 rounded text-xl flex items-center gap-3 group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:animate-pulse">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                </svg>
+                START THE CHALLENGE
+            </button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="hidden-ui w-full max-w-6xl flex-col gap-4 fade-in h-full">
+        
+        <!-- Header Dashboard -->
+        <header class="glass-panel p-4 flex flex-col sm:flex-row justify-between items-center gap-4 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-cyan-900/20 to-purple-900/20 z-0"></div>
+            
+            <div class="z-10 flex items-center gap-3">
+                <div class="p-2 bg-cyan-950 border border-cyan-800 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-xl text-white tracking-wide leading-none">BINOctle</h1>
+                    <span class="font-mono text-xs text-cyan-400 tracking-widest">THE CIPHER ROOM</span>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="z-10 flex gap-4 sm:gap-8 font-mono text-sm border border-gray-700/50 bg-black/40 rounded-lg p-2 px-4 shadow-inner">
+                <div class="flex flex-col items-center">
+                    <span class="text-gray-500 text-[10px] uppercase">Score</span>
+                    <span id="stat-score" class="text-cyan-400 font-bold text-lg">0</span>
+                </div>
+                <div class="w-px bg-gray-700"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-gray-500 text-[10px] uppercase">Attempts</span>
+                    <span id="stat-attempts" class="text-white font-bold text-lg">0</span>
+                </div>
+                <div class="w-px bg-gray-700"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-gray-500 text-[10px] uppercase">Hints Used</span>
+                    <span id="stat-hints" class="text-orange-400 font-bold text-lg">0</span>
+                </div>
+            </div>
+            
+            <div class="z-10 flex gap-2">
+                <button id="btn-reset" class="p-2 bg-slate-800 hover:bg-red-900/50 border border-slate-700 hover:border-red-500 text-slate-400 hover:text-red-400 rounded transition-colors" title="Reset Game">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-6 mt-2 items-start">
+            
+            <!-- Left: Puzzle Area -->
+            <div class="glass-panel w-full lg:w-3/5 p-6 flex flex-col items-center justify-center order-2 lg:order-1 min-h-[500px]">
+                
+                <div class="w-full max-w-md mb-6">
+                    <div class="flex justify-between font-mono text-xs mb-2">
+                        <span class="text-gray-400">PUZZLE PROGRESS</span>
+                        <span id="progress-text" class="text-cyan-400 font-bold">0 / 16 UNLOCKED</span>
+                    </div>
+                    <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                        <div id="progress-bar" class="h-full bg-cyan-500 shadow-[0_0_10px_#00ffcc] transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="puzzle-board" class="puzzle-board">
+                    <!-- Puzzle pieces injected by JS -->
+                </div>
+            </div>
+
+            <!-- Right: Interactive Panel (Missions, Guessing) -->
+            <div class="w-full lg:w-2/5 flex flex-col gap-4 order-1 lg:order-2 h-full">
+                
+                <!-- Instruction / Status Panel -->
+                <div id="panel-status" class="glass-panel p-6">
+                    <h3 class="font-display text-lg text-cyan-400 mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        SYSTEM STATUS
+                    </h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Select a locked puzzle piece from the board to initiate its cipher mission. You must solve all 16 conversions to reveal the hidden image.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 font-mono text-xs text-gray-500 bg-black/30 p-3 rounded border border-gray-800">
+                        <div>[ DEC &rarr; BIN ]</div>
+                        <div>[ DEC &rarr; OCT ]</div>
+                        <div>[ BIN &rarr; DEC ]</div>
+                        <div>[ OCT &rarr; DEC ]</div>
+                    </div>
+                </div>
+
+                <!-- Mission Panel (Hidden initially) -->
+                <div id="panel-mission" class="glass-panel p-6 border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,204,0.1)] hidden-ui">
+                    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                        <h3 class="font-display text-xl text-white flex items-center gap-2">
+                            <span class="text-yellow-400">🔐</span> CIPHER MISSION
+                        </h3>
+                        <span id="lbl-puzzle-id" class="font-mono text-cyan-400 bg-cyan-900/30 px-2 py-1 rounded">PUZZLE #--</span>
+                    </div>
+
+                    <div class="bg-black/60 rounded p-4 mb-4 text-center border border-slate-800 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-30"></div>
+                        <p class="text-gray-400 text-xs uppercase tracking-widest mb-2 relative z-10">Convert the number:</p>
+                        <div id="lbl-question" class="font-mono text-3xl font-bold tracking-wider text-white relative z-10">
+                            --<sub class="text-sm text-gray-500">10</sub> &rarr; ?<sub class="text-sm text-gray-500">2</sub>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-mono text-gray-400 mb-1">Input:</label>
+                        <input type="text" id="inp-answer" class="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white font-mono text-lg text-center focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,204,0.3)] transition-all" placeholder="Enter answer here" autocomplete="off">
+                    </div>
+
+                    <div id="msg-feedback" class="hidden font-bold text-center text-sm p-2 rounded mb-4 font-mono"></div>
+                    
+                    <div id="box-hint" class="hidden bg-orange-950/30 border border-orange-500/30 p-3 rounded mb-4">
+                        <p class="text-orange-400 text-xs font-bold mb-1">💡 HINT:</p>
+                        <p id="lbl-hint" class="text-orange-200 text-sm leading-snug"></p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="btn-hint" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-white font-mono text-sm py-2 rounded border border-slate-600 transition-colors flex justify-center items-center gap-1">
+                            💡 HINT
+                        </button>
+                        <button id="btn-submit" class="w-2/3 bg-cyan-600 hover:bg-cyan-500 text-white font-display font-bold py-2 rounded shadow-[0_0_10px_rgba(0,255,204,0.4)] transition-colors">
+                            SUBMIT ANSWER
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Final Guess Panel (Hidden initially) -->
+                <div id="panel-guess" class="glass-panel p-6 border-purple-500/50 shadow-[0_0_20px_rgba(179,0,255,0.2)] hidden-ui">
+                    <h3 class="font-display text-2xl text-purple-400 mb-2 text-center">🕵️ FINAL CHALLENGE</h3>
+                    <p class="text-gray-300 text-center mb-6 text-sm">You have successfully reconstructed the image. Based on its shape and color, what animal is this?</p>
+                    
+                    <input type="text" id="inp-guess" class="w-full bg-slate-900 border border-purple-500/50 rounded p-4 text-white font-mono text-xl text-center focus:outline-none focus:border-purple-400 focus:shadow-[0_0_15px_rgba(179,0,255,0.4)] transition-all mb-4" placeholder="Type your answer...">
+                    
+                    <div id="msg-guess-feedback" class="hidden text-center text-sm p-2 rounded mb-4 font-bold"></div>
+
+                    <button id="btn-guess" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-display font-bold py-4 rounded text-lg shadow-[0_0_15px_rgba(179,0,255,0.5)] transition-colors flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        SUBMIT GUESS
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-win" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md hidden-ui">
+        <div class="glass-panel max-w-2xl w-full p-8 text-center relative border-green-500 shadow-[0_0_50px_rgba(0,255,0,0.2)] overflow-y-auto max-h-[90vh]">
+            <h2 class="font-display text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-500 mb-2">
+                🎉 CIPHER ROOM CLEARED! 🎉
+            </h2>
+            <p class="text-gray-300 mb-8">Congratulations! You cracked all 16 number ciphers and revealed the hidden image.</p>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 font-mono">
+                <div class="bg-black/50 p-4 rounded border border-gray-800">
+                    <div class="text-xs text-gray-500 uppercase">Final Score</div>
+                    <div id="win-score" class="text-2xl text-green-400 font-bold">0</div>
+                </div>
+                <div class="bg-black/50 p-4 rounded border border-gray-800">
+                    <div class="text-xs text-gray-500 uppercase">Unlocked</div>
+                    <div class="text-2xl text-cyan-400 font-bold">16/16</div>
+                </div>
+                <div class="bg-black/50 p-4 rounded border border-gray-800">
+                    <div class="text-xs text-gray-500 uppercase">Attempts</div>
+                    <div id="win-attempts" class="text-2xl text-white font-bold">0</div>
+                </div>
+                <div class="bg-black/50 p-4 rounded border border-gray-800">
+                    <div class="text-xs text-gray-500 uppercase">Hints Used</div>
+                    <div id="win-hints" class="text-2xl text-orange-400 font-bold">0</div>
+                </div>
+            </div>
+
+            <p class="text-sm italic text-gray-400 mb-6 border-l-4 border-primary pl-4 text-left bg-primary/10 p-2 rounded-r">
+                "You used logical thinking, pattern recognition, decomposition, and systematic problem solving to escape the Cipher Room."
+            </p>
+
+            <div class="text-left mb-8">
+                <h3 class="font-display text-xl text-white mb-4 border-b border-gray-700 pb-2">WHAT DID YOU PRACTICE?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-cyan-400 font-bold text-sm mb-1 flex gap-2"><span>🔢</span> Number Systems</div>
+                        <div class="text-xs text-gray-400">Mengonversi bilangan antara desimal, biner, dan oktal.</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-purple-400 font-bold text-sm mb-1 flex gap-2"><span>🧩</span> Decomposition</div>
+                        <div class="text-xs text-gray-400">Memecah gambar besar menjadi 16 bagian kecil.</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-green-400 font-bold text-sm mb-1 flex gap-2"><span>🔍</span> Pattern Recognition</div>
+                        <div class="text-xs text-gray-400">Mengenali pola dalam sistem bilangan saat pembagian berulang.</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-yellow-400 font-bold text-sm mb-1 flex gap-2"><span>⚙️</span> Algorithmic Thinking</div>
+                        <div class="text-xs text-gray-400">Mengikuti langkah sistematis untuk mendapatkan jawaban.</div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-play-again" class="btn-neon font-display font-bold py-3 px-8 rounded text-lg inline-flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                PLAY AGAIN
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Data Structure for the 16 fixed questions based on prompt requirements
+        const MISSIONS = [
+            { id: 1, type: 'dec2bin', q: 13, ans: '1101', baseQ: 10, baseA: 2, hint: "Bagi bilangan dengan 2 secara berulang. Catat setiap sisa pembagian dan baca sisa dari bawah ke atas." },
+            { id: 2, type: 'dec2bin', q: 25, ans: '11001', baseQ: 10, baseA: 2, hint: "Bagi bilangan dengan 2 secara berulang. Catat setiap sisa pembagian dan baca sisa dari bawah ke atas." },
+            { id: 3, type: 'dec2bin', q: 42, ans: '101010', baseQ: 10, baseA: 2, hint: "Bagi bilangan dengan 2 secara berulang. Catat setiap sisa pembagian dan baca sisa dari bawah ke atas." },
+            { id: 4, type: 'dec2bin', q: 57, ans: '111001', baseQ: 10, baseA: 2, hint: "Bagi bilangan dengan 2 secara berulang. Catat setiap sisa pembagian dan baca sisa dari bawah ke atas." },
+            { id: 5, type: 'dec2oct', q: 18, ans: '22', baseQ: 10, baseA: 8, hint: "Bagi bilangan dengan 8 secara berulang. Catat sisa pembagian dan baca dari bawah ke atas." },
+            { id: 6, type: 'dec2oct', q: 27, ans: '33', baseQ: 10, baseA: 8, hint: "Bagi bilangan dengan 8 secara berulang. Catat sisa pembagian dan baca dari bawah ke atas." },
+            { id: 7, type: 'dec2oct', q: 45, ans: '55', baseQ: 10, baseA: 8, hint: "Bagi bilangan dengan 8 secara berulang. Catat sisa pembagian dan baca dari bawah ke atas." },
+            { id: 8, type: 'dec2oct', q: 72, ans: '110', baseQ: 10, baseA: 8, hint: "Bagi bilangan dengan 8 secara berulang. Catat sisa pembagian dan baca dari bawah ke atas." },
+            { id: 9, type: 'bin2dec', q: '1011', ans: '11', baseQ: 2, baseA: 10, hint: "Gunakan nilai tempat 2⁰, 2¹, 2², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 10, type: 'bin2dec', q: '11010', ans: '26', baseQ: 2, baseA: 10, hint: "Gunakan nilai tempat 2⁰, 2¹, 2², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 11, type: 'bin2dec', q: '100101', ans: '37', baseQ: 2, baseA: 10, hint: "Gunakan nilai tempat 2⁰, 2¹, 2², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 12, type: 'bin2dec', q: '111011', ans: '59', baseQ: 2, baseA: 10, hint: "Gunakan nilai tempat 2⁰, 2¹, 2², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 13, type: 'oct2dec', q: '14', ans: '12', baseQ: 8, baseA: 10, hint: "Gunakan nilai tempat 8⁰, 8¹, 8², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 14, type: 'oct2dec', q: '25', ans: '21', baseQ: 8, baseA: 10, hint: "Gunakan nilai tempat 8⁰, 8¹, 8², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 15, type: 'oct2dec', q: '47', ans: '39', baseQ: 8, baseA: 10, hint: "Gunakan nilai tempat 8⁰, 8¹, 8², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." },
+            { id: 16, type: 'oct2dec', q: '63', ans: '51', baseQ: 8, baseA: 10, hint: "Gunakan nilai tempat 8⁰, 8¹, 8², dan seterusnya. Kalikan setiap digit dengan nilai tempatnya lalu jumlahkan." }
+        ];
+
+        // Valid guess answers (case insensitive handled in code)
+        const VALID_GUESSES = ['gajah', 'elephant', 'hewan gajah'];
+
+        const GRID_SIZE = 4;
+        const TOTAL_PIECES = 16;
+
+        let state = {
+            score: 0,
+            attempts: 0,
+            hintsUsed: 0,
+            unlockedCount: 0,
+            activePieceIndex: null, // Index in the shuffled array (0-15)
+            pieces: [], // Will hold objects: { id (1-16), element, targetRow, targetCol, currentRow, currentCol, locked, usedHint }
+            gamePhase: 'start' // start, playing, guessing, ended
+        };
+
+        // DOM Elements mapping
+        const els = {
+            screenStart: document.getElementById('screen-start'),
+            screenGame: document.getElementById('screen-game'),
+            board: document.getElementById('puzzle-board'),
+            
+            // Stats
+            statScore: document.getElementById('stat-score'),
+            statAttempts: document.getElementById('stat-attempts'),
+            statHints: document.getElementById('stat-hints'),
+            progText: document.getElementById('progress-text'),
+            progBar: document.getElementById('progress-bar'),
+            
+            // Panels
+            panelStatus: document.getElementById('panel-status'),
+            panelMission: document.getElementById('panel-mission'),
+            panelGuess: document.getElementById('panel-guess'),
+            modalWin: document.getElementById('modal-win'),
+            
+            // Mission UI
+            lblPid: document.getElementById('lbl-puzzle-id'),
+            lblQ: document.getElementById('lbl-question'),
+            inpAns: document.getElementById('inp-answer'),
+            btnSub: document.getElementById('btn-submit'),
+            btnHint: document.getElementById('btn-hint'),
+            boxHint: document.getElementById('box-hint'),
+            lblHint: document.getElementById('lbl-hint'),
+            msgFbk: document.getElementById('msg-feedback'),
+            
+            // Guess UI
+            inpGuess: document.getElementById('inp-guess'),
+            btnGuess: document.getElementById('btn-guess'),
+            msgGuessFbk: document.getElementById('msg-guess-feedback')
+        };
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function initGame() {
+            // Reset state
+            state = {
+                score: 0,
+                attempts: 0,
+                hintsUsed: 0,
+                unlockedCount: 0,
+                activePieceIndex: null,
+                pieces: [],
+                gamePhase: 'playing'
+            };
+            
+            updateStatsUI();
+            els.board.innerHTML = '';
+            els.board.classList.remove('board-reveal');
+            
+            showPanel('status');
+            els.inpGuess.value = '';
+            hideFeedback(els.msgGuessFbk);
+
+            // Generate positions
+            let positions = [];
+            for(let r=0; r<GRID_SIZE; r++) {
+                for(let c=0; c<GRID_SIZE; c++) {
+                    positions.push({r, c});
+                }
+            }
+            
+            // Shuffle starting positions to ensure pieces are scrambled initially
+            let scrambledPositions = shuffleArray([...positions]);
+            
+            // Assign missions (1 to 16) to the grid target positions
+            // However, the prompt says "urutan puzzle yang ditampilkan kepada pemain harus diacak"
+            // We map target positions to IDs, then shuffle their starting visual places.
+            for (let i = 0; i < TOTAL_PIECES; i++) {
+                const targetPos = positions[i];
+                const startPos = scrambledPositions[i];
+                
+                const pieceObj = {
+                    index: i,
+                    missionId: i + 1, // 1 to 16 mapped directly to target positions
+                    targetRow: targetPos.r,
+                    targetCol: targetPos.c,
+                    currentRow: startPos.r,
+                    currentCol: startPos.c,
+                    locked: true,
+                    usedHint: false
+                };
+
+                // Create DOM Element
+                const el = document.createElement('div');
+                el.className = 'puzzle-piece locked';
+                // Set initial scrambled position
+                el.style.top = `${startPos.r * 25}%`;
+                el.style.left = `${startPos.c * 25}%`;
+                
+                // Set background position based on TARGET to form image when revealed
+                // bg position percentage formula: pos * (100 / (grid - 1))
+                const bgX = targetPos.c * (100 / (GRID_SIZE - 1));
+                const bgY = targetPos.r * (100 / (GRID_SIZE - 1));
+                el.style.backgroundPosition = `${bgX}% ${bgY}%`;
+
+                // Inner content (Lock and Number)
+                el.innerHTML = `
+                    <div class="piece-content flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-1 opacity-70"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <span class="font-mono font-bold text-lg">#${String(pieceObj.missionId).padStart(2, '0')}</span>
+                    </div>
+                `;
+
+                // Event listener
+                el.addEventListener('click', () => handlePieceClick(i));
+                
+                els.board.appendChild(el);
+                pieceObj.element = el;
+                state.pieces.push(pieceObj);
+            }
+        }
+
+        function handlePieceClick(index) {
+            const piece = state.pieces[index];
+            if (!piece.locked || state.gamePhase !== 'playing') return;
+
+            state.activePieceIndex = index;
+            const missionData = MISSIONS.find(m => m.id === piece.missionId);
+
+            // Populate Mission UI
+            els.lblPid.textContent = `PUZZLE #${piece.missionId}`;
+            els.lblQ.innerHTML = `${missionData.q}<sub class="text-sm text-gray-500">${missionData.baseQ}</sub> &rarr; ?<sub class="text-sm text-gray-500">${missionData.baseA}</sub>`;
+            els.lblHint.textContent = missionData.hint;
+            
+            // Reset form states
+            els.inpAns.value = '';
+            els.inpAns.className = "w-full bg-slate-900 border border-slate-600 rounded p-3 text-white font-mono text-lg text-center focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,204,0.3)] transition-all";
+            
+            hideFeedback(els.msgFbk);
+            els.boxHint.classList.add('hidden');
+            
+            els.btnHint.disabled = false;
+            els.btnHint.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            showPanel('mission');
+            
+            // Highlight active piece on board
+            state.pieces.forEach(p => p.element.classList.remove('border-cyan-400', 'shadow-[0_0_15px_rgba(0,255,204,0.5)]'));
+            piece.element.classList.add('border-cyan-400', 'shadow-[0_0_15px_rgba(0,255,204,0.5)]');
+
+            setTimeout(() => els.inpAns.focus(), 100);
+        }
+
+        function submitAnswer() {
+            if (state.activePieceIndex === null) return;
+            const piece = state.pieces[state.activePieceIndex];
+            const missionData = MISSIONS.find(m => m.id === piece.missionId);
+            const userAnswer = els.inpAns.value.trim().toUpperCase();
+
+            if (!userAnswer) return;
+
+            state.attempts++;
+            
+            if (userAnswer === String(missionData.ans).toUpperCase()) {
+                // Correct
+                handleCorrect(piece);
+            } else {
+                // Incorrect
+                handleIncorrect();
+            }
+            updateStatsUI();
+        }
+
+        function handleCorrect(piece) {
+            // UI Feedback
+            els.inpAns.classList.replace('border-slate-600', 'border-green-500');
+            els.inpAns.classList.replace('focus:border-cyan-400', 'focus:border-green-400');
+            showFeedback(els.msgFbk, "🎉 CORRECT! Cipher cracked! Puzzle unlocked.", 'success');
+            
+            // Update logic
+            piece.locked = false;
+            state.unlockedCount++;
+            
+            const points = piece.usedHint ? 50 : 100;
+            state.score += points;
+
+            // Visual update piece
+            piece.element.classList.remove('locked', 'border-cyan-400', 'shadow-[0_0_15px_rgba(0,255,204,0.5)]');
+            piece.element.classList.add('revealed', 'anim-unlock');
+            
+            // Move to target position
+            piece.element.style.top = `${piece.targetRow * 25}%`;
+            piece.element.style.left = `${piece.targetCol * 25}%`;
+
+            els.btnSub.disabled = true;
+
+            setTimeout(() => {
+                piece.element.classList.remove('anim-unlock');
+                els.btnSub.disabled = false;
+                checkProgress();
+            }, 1000);
+        }
+
+        function handleIncorrect() {
+            els.inpAns.classList.add('border-red-500');
+            showFeedback(els.msgFbk, "❌ INCORRECT. The cipher is still locked. Check your calculation and try again.", 'error');
+            
+            // Shake panel
+            els.panelMission.classList.remove('anim-shake');
+            void els.panelMission.offsetWidth; // trigger reflow
+            els.panelMission.classList.add('anim-shake');
+
+            els.inpAns.focus();
+            els.inpAns.select();
+        }
+
+        function useHint() {
+            if (state.activePieceIndex === null) return;
+            const piece = state.pieces[state.activePieceIndex];
+            
+            if (piece.usedHint) return;
+            
+            piece.usedHint = true;
+            state.hintsUsed++;
+            updateStatsUI();
+
+            els.boxHint.classList.remove('hidden');
+            els.btnHint.disabled = true;
+            els.btnHint.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // Focus back to input
+            els.inpAns.focus();
+        }
+
+        function checkProgress() {
+            if (state.unlockedCount === TOTAL_PIECES) {
+                // All pieces unlocked
+                state.gamePhase = 'guessing';
+                state.score += 500; // Bonus
+                updateStatsUI();
+
+                // Dramatize board reveal
+                els.board.classList.add('board-reveal');
+                showPanel('status'); // hide mission panel temporarily
+                
+                els.panelStatus.innerHTML = `
+                    <h3 class="font-display text-2xl text-green-400 mb-2 text-center">🔓 ALL CIPHERS CRACKED!</h3>
+                    <p class="text-white text-center font-bold">THE HIDDEN IMAGE HAS BEEN REVEALED!</p>
+                `;
+
+                setTimeout(() => {
+                    showPanel('guess');
+                    setTimeout(() => els.inpGuess.focus(), 100);
+                }, 2500);
+
+            } else {
+                showPanel('status');
+                state.activePieceIndex = null;
+            }
+        }
+
+        function checkGuess() {
+            if (state.gamePhase !== 'guessing') return;
+            
+            const guess = els.inpGuess.value.trim().toLowerCase();
+            if (!guess) return;
+
+            let isCorrect = VALID_GUESSES.some(valid => guess === valid || guess.includes(valid));
+
+            if (isCorrect) {
+                showFeedback(els.msgGuessFbk, "Tepat sekali! Mengakses sistem pusat...", 'success');
+                state.gamePhase = 'ended';
+                setTimeout(showWinScreen, 1000);
+            } else {
+                showFeedback(els.msgGuessFbk, "Belum tepat! 🤔 Coba perhatikan kembali gambar dan pikirkan konsep yang berkaitan dengan pemecahan masalah secara sistematis.", 'error');
+                els.panelGuess.classList.add('anim-shake');
+                setTimeout(() => els.panelGuess.classList.remove('anim-shake'), 500);
+            }
+        }
+
+        function showWinScreen() {
+            document.getElementById('win-score').textContent = state.score;
+            document.getElementById('win-attempts').textContent = state.attempts;
+            document.getElementById('win-hints').textContent = state.hintsUsed;
+            
+            els.modalWin.classList.remove('hidden-ui');
+            els.modalWin.classList.add('fade-in');
+        }
+
+        function updateStatsUI() {
+            els.statScore.textContent = state.score;
+            els.statAttempts.textContent = state.attempts;
+            els.statHints.textContent = state.hintsUsed;
+            
+            els.progText.textContent = `${state.unlockedCount} / 16 UNLOCKED`;
+            const pct = (state.unlockedCount / TOTAL_PIECES) * 100;
+            els.progBar.style.width = `${pct}%`;
+        }
+
+        function showPanel(panelName) {
+            els.panelStatus.classList.add('hidden-ui');
+            els.panelMission.classList.add('hidden-ui');
+            els.panelGuess.classList.add('hidden-ui');
+            
+            if(panelName === 'status') els.panelStatus.classList.remove('hidden-ui');
+            if(panelName === 'mission') els.panelMission.classList.remove('hidden-ui');
+            if(panelName === 'guess') els.panelGuess.classList.remove('hidden-ui');
+        }
+
+        function showFeedback(el, msg, type) {
+            el.textContent = msg;
+            el.className = 'font-bold text-center text-sm p-2 rounded mb-4 font-mono block';
+            if (type === 'success') {
+                el.classList.add('bg-green-900/40', 'text-green-400', 'border', 'border-green-500/50');
+            } else {
+                el.classList.add('bg-red-900/40', 'text-red-400', 'border', 'border-red-500/50');
+            }
+        }
+        function hideFeedback(el) {
+            el.classList.add('hidden');
+            el.className = 'hidden font-bold text-center text-sm p-2 rounded mb-4 font-mono';
+        }
+
+        // Attach Events
+        document.getElementById('btn-start').addEventListener('click', () => {
+            els.screenStart.classList.add('hidden-ui');
+            els.screenGame.classList.remove('hidden-ui');
+            initGame();
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if(confirm('Are you sure you want to reset the Cipher Room? All progress will be lost.')) {
+                initGame();
+                // Restore status panel original text if it was modified by end game sequence
+                els.panelStatus.innerHTML = `
+                    <h3 class="font-display text-lg text-cyan-400 mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        SYSTEM STATUS
+                    </h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        Select a locked puzzle piece from the board to initiate its cipher mission. You must solve all 16 conversions to reveal the hidden image.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 font-mono text-xs text-gray-500 bg-black/30 p-3 rounded border border-gray-800">
+                        <div>[ DEC &rarr; BIN ]</div>
+                        <div>[ DEC &rarr; OCT ]</div>
+                        <div>[ BIN &rarr; DEC ]</div>
+                        <div>[ OCT &rarr; DEC ]</div>
+                    </div>
+                `;
+            }
+        });
+
+        els.btnSub.addEventListener('click', submitAnswer);
+        els.inpAns.addEventListener('keypress', e => { if (e.key === 'Enter') submitAnswer(); });
+        els.btnHint.addEventListener('click', useHint);
+        
+        els.btnGuess.addEventListener('click', checkGuess);
+        els.inpGuess.addEventListener('keypress', e => { if (e.key === 'Enter') checkGuess(); });
+
+        document.getElementById('btn-play-again').addEventListener('click', () => {
+            els.modalWin.classList.add('hidden-ui');
+            els.screenGame.classList.add('hidden-ui');
+            els.screenStart.classList.remove('hidden-ui');
+        });
+
+    </script>
+</body>
+</html>
